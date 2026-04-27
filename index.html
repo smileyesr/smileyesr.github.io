@@ -59,6 +59,8 @@ h1,h2,h3{font-family:'Playfair Display',serif}
 
 /* LOBBY */
 #screen-lobby{flex-direction:column;align-items:center;justify-content:center;padding:2rem;background:var(--bg)}
+#screen-lobby-setup{justify-content:center}
+#screen-lobby-setup .setup-container{max-width:700px;margin:0 auto}
 .lobby-container{width:100%;max-width:480px}
 .lobby-title{font-size:2rem;color:var(--accent);margin-bottom:0.5rem}
 .lobby-sub{color:var(--text2);font-size:0.9rem;margin-bottom:2rem}
@@ -219,6 +221,38 @@ h1,h2,h3{font-family:'Playfair Display',serif}
 .result-btn.primary:hover{background:var(--accent2)}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .move-note{font-size:0.72rem;color:var(--text3);line-height:1.5}
+
+/* MOBILE RESPONSIVE */
+@media(max-width:768px){
+  .menu-logo h1{font-size:2.5rem}
+  .menu-grid{grid-template-columns:1fr 1fr;max-width:100%}
+  .game-layout{flex-direction:column;height:auto;min-height:100vh}
+  .game-sidebar-left{width:100%;flex-direction:row;flex-wrap:wrap;padding:0.5rem;gap:0.4rem;border-right:none;border-bottom:1px solid var(--border)}
+  .game-sidebar-left .timer-display{flex:1;min-width:80px}
+  .game-sidebar-left .game-info-item{flex:1;min-width:100px}
+  .game-sidebar-left>div[style*="flex:1"]{display:none}
+  .game-center{padding:0.5rem;order:-1}
+  .game-sidebar-right{width:100%;border-left:none;border-top:1px solid var(--border)}
+  .notation-panel{max-height:120px}
+  .game-controls{justify-content:center}
+  .chessboard{max-width:calc(100vw - 40px);max-height:calc(100vw - 40px)}
+  .editor-layout{grid-template-columns:1fr}
+  .setup-container,.editor-container,.piece-setup-container,.lobby-container{padding:0 0.5rem}
+  .piece-slots{grid-template-columns:repeat(4,1fr)!important}
+  #screen-setup,#screen-editor,#screen-piece-setup,#screen-lobby{padding:1rem 0.75rem}
+  .modal-box{margin:1rem;width:calc(100vw - 2rem);box-sizing:border-box}
+}
+@media(max-width:480px){
+  .menu-logo h1{font-size:2rem}
+  .menu-grid{grid-template-columns:1fr}
+  .menu-btn.full{grid-column:1}
+  .timer-time{font-size:1.3rem}
+  .game-sidebar-left .ctrl-btn{display:none}
+  .game-controls .ctrl-btn{padding:0.5rem 0.75rem;font-size:0.85rem}
+  .piece-slots{grid-template-columns:repeat(4,1fr)!important}
+  .promo-pieces{flex-wrap:wrap;gap:0.5rem}
+  .promo-piece{width:60px;height:60px}
+}
 </style>
 </head>
 <body>
@@ -235,7 +269,7 @@ h1,h2,h3{font-family:'Playfair Display',serif}
       <h3>New Game</h3>
       <p>Set time controls &amp; start locally</p>
     </button>
-    <button class="menu-btn" onclick="showLobby()">
+    <button class="menu-btn" onclick="showLobbySetup()">
       <div class="btn-icon">🌐</div>
       <h3>Online Lobby</h3>
       <p>Play vs a friend on another device</p>
@@ -243,12 +277,12 @@ h1,h2,h3{font-family:'Playfair Display',serif}
     <button class="menu-btn" onclick="showEditor()">
       <div class="btn-icon">✦</div>
       <h3>Piece Designer</h3>
-      <p>Create &amp; edit new pieces with custom images</p>
+      <p>Create &amp; edit piece types &amp; images</p>
     </button>
     <button class="menu-btn" onclick="quickStart()">
       <div class="btn-icon">⚡</div>
       <h3>Quick Play</h3>
-      <p>5-0 blitz, start immediately</p>
+      <p>5 min blitz, start immediately</p>
     </button>
   </div>
 </div>
@@ -292,25 +326,102 @@ h1,h2,h3{font-family:'Playfair Display',serif}
           </div>
         </div>
       </div>
+      <div class="setup-row" style="margin-top:1rem" id="boardsize-row" style="display:none">
+        <div class="setup-field">
+          <label>Board Size</label>
+          <div class="setup-toggle">
+            <button class="toggle-opt active" data-group="boardsize">8×8</button>
+            <button class="toggle-opt" data-group="boardsize">9×9</button>
+            <button class="toggle-opt" data-group="boardsize">10×10</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="setup-section">
       <h3>Custom Pieces</h3>
       <p style="font-size:0.85rem;color:var(--text2);margin-bottom:0.75rem">Let players pick custom pieces for their starting lineup</p>
       <div class="setup-toggle">
-        <button class="toggle-opt active" data-group="custompcs">Enable</button>
-        <button class="toggle-opt" data-group="custompcs">Disable</button>
+        <button class="toggle-opt active" data-group="custompcs" onclick="toggleBoardSizeRow('boardsize-row',true)">Enable</button>
+        <button class="toggle-opt" data-group="custompcs" onclick="toggleBoardSizeRow('boardsize-row',false)">Disable</button>
       </div>
     </div>
     <button class="start-btn" onclick="proceedFromSetup()">Continue →</button>
   </div>
 </div>
 
-<!-- LOBBY -->
+<!-- LOBBY SETUP (host configures game before generating code) -->
+<div id="screen-lobby-setup" class="screen">
+  <div class="setup-container">
+    <button class="back-btn" onclick="showMenu()">← Back</button>
+    <h2 class="setup-title">Online Game Setup</h2>
+    <div class="setup-section">
+      <h3>Time Control</h3>
+      <div class="time-presets">
+        <button class="preset-btn" onclick="setLobbyPreset(1,0,this)">1 min</button>
+        <button class="preset-btn" onclick="setLobbyPreset(2,1,this)">2+1</button>
+        <button class="preset-btn active" onclick="setLobbyPreset(5,0,this)">5 min</button>
+        <button class="preset-btn" onclick="setLobbyPreset(10,0,this)">10 min</button>
+        <button class="preset-btn" onclick="setLobbyPreset(15,10,this)">15+10</button>
+        <button class="preset-btn" onclick="setLobbyPreset(30,0,this)">30 min</button>
+        <button class="preset-btn" onclick="setLobbyPreset(0,0,this)">No limit</button>
+      </div>
+      <div class="setup-row">
+        <div class="setup-field"><label>Minutes per player</label><input type="number" id="lobby-minutes" value="5" min="0" max="180"></div>
+        <div class="setup-field"><label>Increment (seconds)</label><input type="number" id="lobby-increment" value="0" min="0" max="60"></div>
+      </div>
+    </div>
+    <div class="setup-section">
+      <h3>Board Options</h3>
+      <div class="setup-row" id="lboardsize-row" style="display:none">
+        <div class="setup-field">
+          <label>Board Size</label>
+          <div class="setup-toggle">
+            <button class="toggle-opt active" data-group="lboardsize">8×8</button>
+            <button class="toggle-opt" data-group="lboardsize">9×9</button>
+            <button class="toggle-opt" data-group="lboardsize">10×10</button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-row" style="margin-top:1rem">
+        <div class="setup-field">
+          <label>Host plays as</label>
+          <div class="setup-toggle">
+            <button class="toggle-opt active" data-group="lcolor">White</button>
+            <button class="toggle-opt" data-group="lcolor">Black</button>
+            <button class="toggle-opt" data-group="lcolor">Random</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="setup-section">
+      <h3>Custom Pieces</h3>
+      <p style="font-size:0.85rem;color:var(--text2);margin-bottom:0.75rem">Allow players to pick custom pieces for their back rank</p>
+      <div class="setup-toggle">
+        <button class="toggle-opt active" data-group="lcustompcs" onclick="toggleBoardSizeRow('lboardsize-row',true)">Enable</button>
+        <button class="toggle-opt" data-group="lcustompcs" onclick="toggleBoardSizeRow('lboardsize-row',false)">Disable</button>
+      </div>
+    </div>
+    <button class="start-btn" onclick="proceedToLobby()">Create Lobby →</button>
+
+    <div class="lobby-divider" style="margin:1.5rem 0">or join an existing lobby</div>
+    <div class="setup-section" style="margin-bottom:0">
+      <h3>Join a Game</h3>
+      <p style="font-size:0.85rem;color:var(--text2);margin-bottom:1rem">Enter a friend's lobby code to join their game directly.</p>
+      <div class="join-row">
+        <input type="text" class="join-input" id="lobby-setup-join-input" placeholder="ABCD" maxlength="4" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:0.7rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1.1rem;text-transform:uppercase;letter-spacing:0.15em;outline:none;text-align:center;flex:1">
+        <button class="join-btn" onclick="joinFromSetup()">Join →</button>
+      </div>
+      <div id="lobby-setup-join-status" style="margin-top:0.75rem;font-size:0.85rem;color:var(--text2);text-align:center;min-height:20px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOBBY (waiting room + join) -->
 <div id="screen-lobby" class="screen">
   <div class="lobby-container">
-    <button class="back-btn" onclick="showMenu()">← Back</button>
+    <button class="back-btn" onclick="setScreen('screen-lobby-setup')">← Back</button>
     <h2 class="lobby-title">Online Lobby</h2>
-    <p class="lobby-sub">Share your code or join a friend's game. Runs peer-to-peer in your browser via BroadcastChannel (same-device tabs) or use the code to coordinate.</p>
+    <p class="lobby-sub">Share your code or join a friend's game. Same-device tabs use BroadcastChannel peer-to-peer.</p>
 
     <div class="lobby-card">
       <h3 style="font-size:0.85rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem">Create a Game</h3>
@@ -340,10 +451,17 @@ h1,h2,h3{font-family:'Playfair Display',serif}
   <div class="piece-setup-container">
     <button class="back-btn" onclick="showSetup()">← Back</button>
     <h2 class="piece-setup-title">Customize Starting Lineup</h2>
-    <p class="piece-setup-sub">Each player can swap back-rank pieces with custom ones. Click a slot, then pick a replacement below.</p>
-    <div class="player-tabs">
-      <button class="player-tab active" onclick="switchPieceSetupPlayer('white',this)">♔ White</button>
-      <button class="player-tab" onclick="switchPieceSetupPlayer('black',this)">♚ Black</button>
+    <p class="piece-setup-sub" id="piece-setup-sub">Each player can swap back-rank pieces with custom ones. Click a slot, then pick a replacement below.</p>
+    <div id="online-ready-status" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;text-align:center">
+      <div style="font-size:0.85rem;color:var(--text2);margin-bottom:0.5rem">Online Game — Configure your pieces then click Ready Up</div>
+      <div style="display:flex;justify-content:center;gap:2rem;font-size:0.85rem">
+        <span id="ready-status-you" style="color:var(--text3)">You: <span style="color:var(--red)">●</span> Not ready</span>
+        <span id="ready-status-opp" style="color:var(--text3)">Opponent: <span style="color:var(--red)">●</span> Waiting</span>
+      </div>
+    </div>
+    <div class="player-tabs" id="piece-setup-tabs">
+      <button class="player-tab active" onclick="switchPieceSetupPlayer('white',this)" id="tab-white">♔ White</button>
+      <button class="player-tab" onclick="switchPieceSetupPlayer('black',this)" id="tab-black">♚ Black</button>
     </div>
     <div class="setup-section" style="background:var(--bg2)">
       <h3>Back Rank</h3>
@@ -356,7 +474,7 @@ h1,h2,h3{font-family:'Playfair Display',serif}
     </div>
     <div style="display:flex;gap:0.75rem">
       <button class="confirm-pieces-btn" style="background:var(--bg3);color:var(--text);border:1px solid var(--border)" onclick="resetPieceSetup()">Reset</button>
-      <button class="confirm-pieces-btn" onclick="startGame()">Start Game →</button>
+      <button class="confirm-pieces-btn" id="piece-setup-confirm-btn" onclick="confirmPieceSetup()">Start Game →</button>
     </div>
   </div>
 </div>
@@ -448,6 +566,12 @@ h1,h2,h3{font-family:'Playfair Display',serif}
           <label>Piece Value (material)</label>
           <input type="number" id="ep-value" value="5" min="1" max="20">
         </div>
+        <div class="field-group">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" id="ep-promo" style="width:16px;height:16px;accent-color:var(--accent)">
+            <span>Allow pawn promotion into this piece</span>
+          </label>
+        </div>
         <h3 style="margin-top:1.25rem;margin-bottom:0.75rem;font-size:0.85rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em">Images</h3>
         <div class="upload-row">
           <div class="field-group">
@@ -527,6 +651,39 @@ h1,h2,h3{font-family:'Playfair Display',serif}
   </div>
 </div>
 
+<!-- Piece preview modal -->
+<div class="modal-overlay" id="piece-preview-modal" onclick="closePiecePreview(event)">
+  <div class="modal-box" style="min-width:320px;max-width:420px" onclick="event.stopPropagation()">
+    <h3 id="pp-title">Piece Info</h3>
+    <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem">
+      <div style="text-align:center">
+        <img id="pp-img" src="" style="width:60px;height:60px;object-fit:contain;display:none">
+        <div id="pp-sym" style="font-size:2.5rem;display:none"></div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;color:var(--text3);margin-bottom:4px">Notation: <span id="pp-notation" style="color:var(--accent)"></span></div>
+        <div style="font-size:0.8rem;color:var(--text3);margin-bottom:4px">Value: <span id="pp-value" style="color:var(--text)"></span></div>
+        <div style="font-size:0.8rem;color:var(--text3)">Promotion: <span id="pp-promo" style="color:var(--text)"></span></div>
+      </div>
+    </div>
+    <div style="font-size:0.8rem;color:var(--text2);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.08em">Movement Pattern</div>
+    <div id="pp-moveboard" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;width:200px;margin:0 auto 1.5rem"></div>
+    <button class="result-btn" onclick="document.getElementById('piece-preview-modal').classList.remove('open')">Close</button>
+  </div>
+</div>
+
+<!-- Draw offer modal -->
+<div class="modal-overlay" id="draw-offer-modal">
+  <div class="modal-box">
+    <h3>Draw Offered</h3>
+    <p style="color:var(--text2);margin-bottom:1.5rem">The current player offers a draw. Do both players agree?</p>
+    <div style="display:flex;gap:1rem;justify-content:center">
+      <button class="result-btn" onclick="declineDraw()">Decline</button>
+      <button class="result-btn primary" onclick="acceptDraw()">Accept Draw</button>
+    </div>
+  </div>
+</div>
+
 <!-- Result modal -->
 <div class="result-modal" id="result-modal">
   <div class="result-box">
@@ -534,7 +691,7 @@ h1,h2,h3{font-family:'Playfair Display',serif}
     <h2 class="result-title" id="result-title">Game Over</h2>
     <p class="result-sub" id="result-sub"></p>
     <div class="result-btns">
-      <button class="result-btn" onclick="showMenu()">Menu</button>
+      <button class="result-btn" onclick="closeResultAndMenu()">Menu</button>
       <button class="result-btn primary" onclick="rematch()">Rematch</button>
     </div>
   </div>
@@ -573,6 +730,7 @@ let timers={w:300,b:300}, increment=0, noLimit=false, timerInterval=null;
 let autoFlip=false, lastMove=null, customPieces=[], capturedPieces={w:[],b:[]};
 let whiteLineup=[...'RNBQKBNR'], blackLineup=[...'rnbqkbnr'];
 let gameSetupParams={};
+let boardSize=8; // 8, 9, or 10
 
 // Drag state
 let dragPiece=null, dragFrom=null, dragGhost=null;
@@ -590,10 +748,17 @@ let editingCustomNotation=null;
 // NAVIGATION
 // ============================================================
 function showMenu(){
+  if(isOnlineGame&&gameActive&&lobbyChannel){
+    if(!confirm('Leaving will count as a resignation. Continue?')) return;
+    lobbyChannel.postMessage({type:'player_exited'});
+    endGame(turn==='w'?'black':'white','resign');
+  }
+  isOnlineGame=false;
   setScreen('screen-menu');
   stopTimer();
 }
 function showSetup(){setScreen('screen-setup');}
+function showLobbySetup(){setScreen('screen-lobby-setup');}
 function showLobby(){setScreen('screen-lobby');if(!lobbyCode)createLobby();}
 function showEditor(){
   setScreen('screen-editor');
@@ -620,6 +785,16 @@ function getActiveToggle(group){
   const el=document.querySelector(`[data-group="${group}"].active`);
   return el?el.textContent.trim():'';
 }
+function toggleBoardSizeRow(rowId, show){
+  const el=document.getElementById(rowId);
+  if(el) el.style.display=show?'':'none';
+  // Reset to 8x8 when hidden
+  if(!show){
+    const group=rowId==='boardsize-row'?'boardsize':'lboardsize';
+    document.querySelectorAll(`[data-group="${group}"]`).forEach((b,i)=>{b.classList.toggle('active',i===0);});
+  }
+}
+
 function setPreset(mins,inc,btn){
   document.getElementById('setup-minutes').value=mins;
   document.getElementById('setup-increment').value=inc;
@@ -629,8 +804,10 @@ function setPreset(mins,inc,btn){
 function quickStart(){
   document.getElementById('setup-minutes').value=5;
   document.getElementById('setup-increment').value=0;
-  whiteLineup=[...'RNBQKBNR']; blackLineup=[...'rnbqkbnr'];
-  tempLineups={white:[...'RNBQKBNR'],black:[...'rnbqkbnr']};
+  boardSize=8;
+  const defRow=defaultLineupForSize(8);
+  whiteLineup=[...defRow]; blackLineup=[...defRow.map(p=>p.toLowerCase())];
+  tempLineups={white:[...defRow],black:[...defRow.map(p=>p.toLowerCase())]};
   boardFlipped=false; autoFlip=false; increment=0; noLimit=false;
   timers={w:300,b:300};
   startGame();
@@ -644,38 +821,135 @@ function proceedFromSetup(){
   increment=inc; noLimit=mins===0;
   timers={w:mins*60,b:mins*60};
   const customEnabled=getActiveToggle('custompcs')==='Enable';
-  tempLineups={white:[...'RNBQKBNR'],black:[...'rnbqkbnr']};
+  // Board size only applies when custom pieces enabled
+  const bsStr=customEnabled?(getActiveToggle('boardsize')||'8×8'):'8×8';
+  boardSize=parseInt(bsStr)||8;
+  const defRow=defaultLineupForSize(boardSize);
+  tempLineups={white:[...defRow],black:[...defRow.map(p=>p.toLowerCase())]};
+  isOnlineGame=false;
   if(customEnabled&&customPieces.length>0){
+    // Reset piece setup screen to local mode
+    document.getElementById('online-ready-status').style.display='none';
+    document.getElementById('piece-setup-confirm-btn').textContent='Start Game →';
+    document.getElementById('piece-setup-confirm-btn').style.background='';
+    document.getElementById('piece-setup-confirm-btn').style.color='';
+    document.getElementById('piece-setup-confirm-btn').style.border='';
+    document.getElementById('piece-setup-sub').textContent='Each player can swap back-rank pieces with custom ones. Click a slot, then pick a replacement below.';
+    document.getElementById('tab-white').style.opacity=''; document.getElementById('tab-white').style.pointerEvents=''; document.getElementById('tab-white').title='';
+    document.getElementById('tab-black').style.opacity=''; document.getElementById('tab-black').style.pointerEvents=''; document.getElementById('tab-black').title='';
+    document.getElementById('tab-white').classList.add('active'); document.getElementById('tab-black').classList.remove('active');
+    pieceSetupPlayer='white';
     setScreen('screen-piece-setup');
     renderPieceSetupScreen('white');
   } else {
-    whiteLineup=[...'RNBQKBNR']; blackLineup=[...'rnbqkbnr'];
+    whiteLineup=[...defRow]; blackLineup=[...defRow.map(p=>p.toLowerCase())];
     startGame();
   }
 }
 
-// ============================================================
-// LOBBY (BroadcastChannel peer-to-peer, same browser)
-// ============================================================
+function defaultLineupForSize(sz){
+  if(sz===8) return [...'RNBQKBNR'];
+  if(sz===9) return [...'RNBQKBNRR']; // extra rook slot
+  if(sz===10) return [...'RRNBQKBNRR']; // two extra slots
+  return [...'RNBQKBNR'];
+}
+
+// Lobby config (set by host in lobby-setup screen)
+let lobbyConfig={mins:5,inc:0,boardSz:8,customEnabled:false};
+let isOnlineGame=false;
+let onlinePlayerColor='white'; // which color this client plays
+let readyStates={host:false,guest:false};
+
+function setLobbyPreset(mins,inc,btn){
+  document.getElementById('lobby-minutes').value=mins;
+  document.getElementById('lobby-increment').value=inc;
+  document.querySelectorAll('#screen-lobby-setup .preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function proceedToLobby(){
+  const mins=parseFloat(document.getElementById('lobby-minutes').value)||0;
+  const inc=parseFloat(document.getElementById('lobby-increment').value)||0;
+  const customEnabled=getActiveToggle('lcustompcs')==='Enable';
+  // Board size only relevant when custom pieces enabled
+  const bsStr=customEnabled?(getActiveToggle('lboardsize')||'8×8'):'8×8';
+  const sz=parseInt(bsStr)||8;
+  const colorPref=getActiveToggle('lcolor')||'White';
+  const hostColor=colorPref==='Random'?(Math.random()<0.5?'white':'black'):(colorPref==='White'?'white':'black');
+  lobbyConfig={mins,inc,boardSz:sz,customEnabled,hostColor};
+  isOnlineGame=true;
+  showLobby();
+  createLobby();
+}
+
+function joinFromSetup(){
+  const code=document.getElementById('lobby-setup-join-input').value.trim().toUpperCase();
+  const statusEl=document.getElementById('lobby-setup-join-status');
+  if(code.length!==4){statusEl.textContent='Enter a 4-letter code.';statusEl.style.color='var(--red)';return;}
+  isOnlineGame=true;
+  // Switch to lobby screen then do the join
+  showLobby();
+  setTimeout(()=>{
+    document.getElementById('join-code-input').value=code;
+    joinLobby();
+  },100);
+}
+
 function genCode(){return Math.random().toString(36).substr(2,4).toUpperCase();}
 
 function createLobby(){
   if(lobbyChannel){lobbyChannel.close();}
   lobbyCode=genCode();
   document.getElementById('lobby-code-display').textContent=lobbyCode;
-  document.getElementById('lobby-host-status').innerHTML='<div class="lobby-waiting"><div class="spinner"></div><span>Waiting for opponent…</span></div>';
+  document.getElementById('lobby-host-status').innerHTML='<div class="lobby-waiting"><div class="spinner"></div><span>Waiting for opponent to join…</span></div>';
   lobbyRole='host';
+  readyStates={host:false,guest:false};
   lobbyChannel=new BroadcastChannel('chessvault_'+lobbyCode);
   lobbyChannel.onmessage=e=>{
     const msg=e.data;
+
     if(msg.type==='join_request'){
-      document.getElementById('lobby-host-status').innerHTML='<span style="color:var(--green)">✓ Opponent connected! Starting game…</span>';
-      lobbyChannel.postMessage({type:'join_accept',code:lobbyCode});
-      setTimeout(()=>{whiteLineup=[...'RNBQKBNR'];blackLineup=[...'rnbqkbnr'];tempLineups={white:[...'RNBQKBNR'],black:[...'rnbqkbnr']};boardFlipped=false;autoFlip=false;increment=0;noLimit=false;timers={w:300,b:300};startGame();},800);
+      document.getElementById('lobby-host-status').innerHTML='<span style="color:var(--green)">✓ Opponent connected! Setting up game…</span>';
+      const cfg=lobbyConfig;
+      const allowedPieces=cfg.customEnabled?customPieces:[];
+      lobbyChannel.postMessage({type:'join_accept',code:lobbyCode,boardSize:cfg.boardSz,mins:cfg.mins,inc:cfg.inc,customEnabled:cfg.customEnabled,allowedPieces,hostColor:cfg.hostColor||'white'});
+      boardSize=cfg.boardSz; increment=cfg.inc; noLimit=cfg.mins===0;
+      timers={w:cfg.mins*60,b:cfg.mins*60};
+      onlinePlayerColor=cfg.hostColor||'white';
+      boardFlipped=onlinePlayerColor==='black';
+      autoFlip=false;
+      const dr=defaultLineupForSize(boardSize);
+      tempLineups={white:[...dr],black:[...dr.map(p=>p.toLowerCase())]};
+      readyStates={host:false,guest:false};
+      if(cfg.customEnabled&&customPieces.length>0){
+        showOnlinePieceSetup(onlinePlayerColor);
+      } else {
+        showOnlineWaitingForReady();
+      }
     }
-    if(msg.type==='move_made'){
-      // guest receives move from host
-      if(lobbyRole==='guest') applyOnlineMove(msg.move);
+
+    // Guest is telling us their lineup + ready state
+    if(msg.type==='player_ready'&&msg.role==='guest'){
+      tempLineups[onlinePlayerColor==='white'?'black':'white']=msg.lineup;
+      readyStates.guest=true;
+      updateOnlineReadyUI();
+      if(readyStates.host&&readyStates.guest) startOnlineGame();
+    }
+
+    // Guest unreadied
+    if(msg.type==='player_unready'&&msg.role==='guest'){
+      readyStates.guest=false;
+      updateOnlineReadyUI();
+    }
+
+    if(msg.type==='move_made') applyOnlineMove(msg.move);
+
+    if(msg.type==='player_exited'){
+      if(gameActive) endGame(onlinePlayerColor,'resign');
+      else if(document.getElementById('screen-piece-setup').classList.contains('active')){
+        alert('Opponent left the lobby.');
+        showMenu();
+      }
     }
   };
 }
@@ -689,12 +963,50 @@ function joinLobby(){
   lobbyChannel=ch; lobbyRole='guest'; lobbyCode=code;
   ch.onmessage=e=>{
     const msg=e.data;
+
     if(msg.type==='join_accept'){
-      setJoinStatus('✓ Connected! Starting…','green');
-      setTimeout(()=>{boardFlipped=true;whiteLineup=[...'RNBQKBNR'];blackLineup=[...'rnbqkbnr'];tempLineups={white:[...'RNBQKBNR'],black:[...'rnbqkbnr']};autoFlip=false;increment=0;noLimit=false;timers={w:300,b:300};startGame();},600);
+      setJoinStatus('✓ Connected! Setting up game…','green');
+      boardSize=msg.boardSize||8;
+      const mins=msg.mins||0; const inc=msg.inc||0;
+      increment=inc; noLimit=mins===0; timers={w:mins*60,b:mins*60};
+      onlinePlayerColor=(msg.hostColor||'white')==='white'?'black':'white';
+      boardFlipped=onlinePlayerColor==='black';
+      autoFlip=false;
+      const dr=defaultLineupForSize(boardSize);
+      tempLineups={white:[...dr],black:[...dr.map(p=>p.toLowerCase())]};
+      readyStates={host:false,guest:false};
+      if(msg.customEnabled&&msg.allowedPieces&&msg.allowedPieces.length>0){
+        const guestOrigPieces=customPieces;
+        customPieces=msg.allowedPieces;
+        window._guestOrigPieces=guestOrigPieces;
+        showOnlinePieceSetup(onlinePlayerColor);
+      } else {
+        showOnlineWaitingForReady();
+      }
     }
-    if(msg.type==='move_made'&&lobbyRole==='host'){
-      applyOnlineMove(msg.move);
+
+    // Host is telling us their lineup + ready state
+    if(msg.type==='player_ready'&&msg.role==='host'){
+      tempLineups[onlinePlayerColor==='white'?'black':'white']=msg.lineup;
+      readyStates.host=true;
+      updateOnlineReadyUI();
+      if(readyStates.host&&readyStates.guest) startOnlineGame();
+    }
+
+    // Host unreadied
+    if(msg.type==='player_unready'&&msg.role==='host'){
+      readyStates.host=false;
+      updateOnlineReadyUI();
+    }
+
+    if(msg.type==='move_made') applyOnlineMove(msg.move);
+
+    if(msg.type==='player_exited'){
+      if(gameActive) endGame(onlinePlayerColor,'resign');
+      else if(document.getElementById('screen-piece-setup').classList.contains('active')){
+        alert('Opponent left the lobby.');
+        showMenu();
+      }
     }
   };
 }
@@ -703,6 +1015,119 @@ function setJoinStatus(msg,color){
   const el=document.getElementById('join-status');
   el.textContent=msg;
   el.style.color=color==='red'?'var(--red)':color==='green'?'var(--green)':'var(--text2)';
+}
+
+function showOnlinePieceSetup(playerColor){
+  setScreen('screen-piece-setup');
+  document.getElementById('online-ready-status').style.display='block';
+  document.getElementById('piece-setup-confirm-btn').textContent='✓ Ready Up';
+  document.getElementById('piece-setup-sub').textContent=`You are playing as ${playerColor.charAt(0).toUpperCase()+playerColor.slice(1)}. Customize your back rank, then click Ready Up.`;
+  const tabWhite=document.getElementById('tab-white');
+  const tabBlack=document.getElementById('tab-black');
+  if(playerColor==='white'){
+    tabBlack.style.opacity='0.4'; tabBlack.style.pointerEvents='none'; tabBlack.title='Opponent configures their own pieces';
+    tabWhite.style.opacity=''; tabWhite.style.pointerEvents=''; tabWhite.title='';
+    tabWhite.classList.add('active'); tabBlack.classList.remove('active');
+    pieceSetupPlayer='white';
+  } else {
+    tabWhite.style.opacity='0.4'; tabWhite.style.pointerEvents='none'; tabWhite.title='Opponent configures their own pieces';
+    tabBlack.style.opacity=''; tabBlack.style.pointerEvents=''; tabBlack.title='';
+    tabBlack.classList.add('active'); tabWhite.classList.remove('active');
+    pieceSetupPlayer='black';
+  }
+  updateOnlineReadyUI();
+  renderPieceSetupScreen(playerColor);
+}
+
+function showOnlineWaitingForReady(){
+  setScreen('screen-piece-setup');
+  document.getElementById('online-ready-status').style.display='block';
+  document.getElementById('piece-setup-confirm-btn').textContent='✓ Ready Up';
+  document.getElementById('piece-setup-sub').textContent="Standard setup. Click Ready Up when you're ready to play!";
+  // Disable both tabs — no customization needed
+  ['tab-white','tab-black'].forEach(id=>{
+    const t=document.getElementById(id);
+    t.style.opacity='0.4'; t.style.pointerEvents='none';
+  });
+  updateOnlineReadyUI();
+}
+
+function updateOnlineReadyUI(){
+  const youEl=document.getElementById('ready-status-you');
+  const oppEl=document.getElementById('ready-status-opp');
+  if(!youEl) return;
+  const youReady=lobbyRole==='host'?readyStates.host:readyStates.guest;
+  const oppReady=lobbyRole==='host'?readyStates.guest:readyStates.host;
+  youEl.innerHTML=`You: <span style="color:${youReady?'var(--green)':'var(--red)'}">●</span> ${youReady?'Ready':'Not ready'}`;
+  oppEl.innerHTML=`Opponent: <span style="color:${oppReady?'var(--green)':'var(--accent)'}">●</span> ${oppReady?'Ready':'Waiting…'}`;
+
+  // Update button to toggle between Ready Up / Cancel Ready
+  const btn=document.getElementById('piece-setup-confirm-btn');
+  if(btn&&isOnlineGame){
+    btn.textContent=youReady?'✗ Cancel Ready':'✓ Ready Up';
+    btn.style.background=youReady?'var(--bg3)':'';
+    btn.style.color=youReady?'var(--text)':'';
+    btn.style.border=youReady?'1px solid var(--border)':'';
+  }
+
+  // Lock/unlock the piece slots based on ready state
+  const slotsEl=document.getElementById('piece-slots');
+  if(slotsEl){
+    slotsEl.style.opacity=youReady?'0.55':'1';
+    slotsEl.style.pointerEvents=youReady?'none':'';
+  }
+  const availEl=document.getElementById('custom-pieces-available');
+  if(availEl){
+    availEl.style.opacity=youReady?'0.55':'1';
+    availEl.style.pointerEvents=youReady?'none':'';
+  }
+}
+
+function confirmPieceSetup(){
+  if(!isOnlineGame){
+    // Local game — just start
+    whiteLineup=tempLineups.white; blackLineup=tempLineups.black;
+    startGame();
+    return;
+  }
+
+  // Toggle ready state
+  const myRole=lobbyRole;
+  const currentlyReady=myRole==='host'?readyStates.host:readyStates.guest;
+
+  if(currentlyReady){
+    // Unready
+    if(myRole==='host') readyStates.host=false;
+    else readyStates.guest=false;
+    lobbyChannel.postMessage({type:'player_unready',role:myRole});
+    updateOnlineReadyUI();
+    return;
+  }
+
+  // Go ready
+  const myColor=onlinePlayerColor;
+  const myLineup=tempLineups[myColor];
+
+  // Restore guest's original pieces if needed
+  if(myRole==='guest'&&window._guestOrigPieces){
+    customPieces=window._guestOrigPieces;
+    window._guestOrigPieces=null;
+  }
+
+  if(myRole==='host') readyStates.host=true;
+  else readyStates.guest=true;
+
+  lobbyChannel.postMessage({type:'player_ready',role:myRole,lineup:myLineup});
+  updateOnlineReadyUI();
+  if(readyStates.host&&readyStates.guest) startOnlineGame();
+}
+
+function startOnlineGame(){
+  // Each side already put their lineup into tempLineups[theirColor].
+  // The opponent's lineup arrives via player_ready message.
+  whiteLineup=tempLineups.white;
+  blackLineup=tempLineups.black;
+  startGame();
 }
 
 function copyLobbyCode(){
@@ -738,18 +1163,22 @@ function switchPieceSetupPlayer(player,btn){
 
 function renderPieceSetupScreen(player){
   const lineup=tempLineups[player], isWhite=player==='white';
+  const sz=boardSize||8;
   const slotsEl=document.getElementById('piece-slots');
   slotsEl.innerHTML='';
-  for(let i=0;i<8;i++){
+  slotsEl.style.gridTemplateColumns=`repeat(${sz},1fr)`;
+  for(let i=0;i<sz;i++){
     const sq=document.createElement('div');
     sq.className='piece-slot'+(selectedSlot===i?' selected':'');
-    const pc=lineup[i], upper=pc.toUpperCase();
+    const pc=lineup[i]||'', upper=pc.toUpperCase();
+    const isKing=upper==='K';
     const cp=customPieces.find(p=>p.notation===upper);
     const imgSrc=cp?(isWhite?cp.imgWhite:cp.imgBlack):null;
     const stdSrc=getStdPieceImg(isWhite?'w':'b',upper);
     if(imgSrc){ sq.innerHTML=`<img src="${imgSrc}"><div class="slot-label">${cp.name}</div>`; }
     else { sq.innerHTML=`<img src="${stdSrc}" onerror="this.style.opacity=0.3"><div class="slot-label">${upper}</div>`; }
-    sq.onclick=()=>selectSlot(i);
+    if(isKing){sq.title='King cannot be replaced';sq.style.opacity='0.7';sq.style.cursor='not-allowed';}
+    else sq.onclick=()=>selectSlot(i);
     slotsEl.appendChild(sq);
   }
   const avEl=document.getElementById('custom-pieces-available');
@@ -761,6 +1190,9 @@ function renderPieceSetupScreen(player){
       const btn=document.createElement('div'); btn.className='avail-piece';
       const imgSrc=isWhite?cp.imgWhite:cp.imgBlack;
       btn.innerHTML=imgSrc?`<img src="${imgSrc}"><span>${cp.name}</span>`:`<span>${cp.notation} ${cp.name}</span>`;
+      // Info button
+      const ib=document.createElement('span'); ib.textContent=' ℹ'; ib.style.cssText='color:var(--accent);cursor:pointer;font-size:0.85rem;'; ib.onclick=ev=>{ev.stopPropagation();showPiecePreview(cp.notation);};
+      btn.appendChild(ib);
       btn.onclick=()=>assignCustomPiece(cp);
       avEl.appendChild(btn);
     });
@@ -774,32 +1206,44 @@ function selectSlot(i){selectedSlot=selectedSlot===i?null:i; renderPieceSetupScr
 function assignCustomPiece(cp){
   if(selectedSlot===null)return;
   const isWhite=pieceSetupPlayer==='white';
+  const sz=boardSize||8;
+  const defRow=defaultLineupForSize(sz);
+  // Prevent replacing the king
+  if((defRow[selectedSlot]||'').toUpperCase()==='K'){alert('The King cannot be replaced!');return;}
   tempLineups[pieceSetupPlayer][selectedSlot]=isWhite?cp.notation:cp.notation.toLowerCase();
   selectedSlot=null; renderPieceSetupScreen(pieceSetupPlayer);
 }
 function resetSlot(){
   if(selectedSlot===null)return;
-  const dw=[...'RNBQKBNR'], db=[...'rnbqkbnr'];
-  tempLineups[pieceSetupPlayer][selectedSlot]=pieceSetupPlayer==='white'?dw[selectedSlot]:db[selectedSlot];
+  const defRow=defaultLineupForSize(boardSize||8);
+  const defRowLower=defRow.map(p=>p.toLowerCase());
+  tempLineups[pieceSetupPlayer][selectedSlot]=pieceSetupPlayer==='white'?defRow[selectedSlot]:defRowLower[selectedSlot];
   selectedSlot=null; renderPieceSetupScreen(pieceSetupPlayer);
 }
-function resetPieceSetup(){tempLineups={white:[...'RNBQKBNR'],black:[...'rnbqkbnr']};selectedSlot=null;renderPieceSetupScreen(pieceSetupPlayer);}
+function resetPieceSetup(){
+  const defRow=defaultLineupForSize(boardSize||8);
+  tempLineups={white:[...defRow],black:[...defRow.map(p=>p.toLowerCase())]};
+  selectedSlot=null;renderPieceSetupScreen(pieceSetupPlayer);
+}
 
 // ============================================================
 // GAME INIT
 // ============================================================
 function startGame(){
   whiteLineup=tempLineups.white; blackLineup=tempLineups.black;
-  board=Array(8).fill(null).map(()=>Array(8).fill(null));
-  whiteLineup.forEach((p,c)=>{board[7][c]='w'+p.toUpperCase();});
-  for(let c=0;c<8;c++)board[6][c]='wP';
-  blackLineup.forEach((p,c)=>{board[0][c]='b'+p.toUpperCase();});
-  for(let c=0;c<8;c++)board[1][c]='bP';
+  const sz=boardSize||8;
+  board=Array(sz).fill(null).map(()=>Array(sz).fill(null));
+  whiteLineup.forEach((p,c)=>{if(c<sz)board[sz-1][c]='w'+p.toUpperCase();});
+  for(let c=0;c<sz;c++)board[sz-2][c]='wP';
+  blackLineup.forEach((p,c)=>{if(c<sz)board[0][c]='b'+p.toUpperCase();});
+  for(let c=0;c<sz;c++)board[1][c]='bP';
   turn='w'; castlingRights={wK:true,wQ:true,bK:true,bQ:true};
   enPassantSq=null; halfMoveClock=0; fullMoveNum=1;
   selectedSq=null; validMoves=[]; moveHistory=[]; boardHistory=[];
   viewingMove=-1; lastMove=null; capturedPieces={w:[],b:[]};
   gameActive=true;
+  // Update chessboard grid CSS
+  document.getElementById('chessboard').style.gridTemplateColumns=`repeat(${sz},1fr)`;
   setScreen('screen-game');
   setBoardSize();
   renderBoard();
@@ -813,13 +1257,22 @@ function startGame(){
 }
 
 function setBoardSize(){
-  const avail=Math.min(window.innerHeight-80,window.innerWidth-480,640);
-  const sz=Math.max(320,Math.floor(avail/8)*8);
-  document.getElementById('chessboard').style.width=sz+'px';
-  document.getElementById('chessboard').style.height=sz+'px';
-  document.getElementById('coords-rank').style.height=sz+'px';
-  document.getElementById('coords-file').style.width=sz+'px';
-  window._boardSize=sz;
+  const sz=boardSize||8;
+  const isMobile=window.innerWidth<=768;
+  const sidebarW=isMobile?0:440; // left 200 + right 240
+  const availW=window.innerWidth-sidebarW-40;
+  const availH=isMobile?window.innerWidth-40:(window.innerHeight-80);
+  const avail=Math.min(availW,availH,640);
+  const sqSz=Math.max(28,Math.floor(avail/sz));
+  const total=sqSz*sz;
+  document.getElementById('chessboard').style.width=total+'px';
+  document.getElementById('chessboard').style.height=total+'px';
+  document.getElementById('chessboard').style.gridTemplateColumns=`repeat(${sz},1fr)`;
+  document.getElementById('coords-rank').style.height=total+'px';
+  document.getElementById('coords-file').style.width=total+'px';
+  window._boardSize=total;
+  window._sqSize=sqSz;
+  window._boardN=sz;
 }
 
 function getStdPieceImg(color,type){
@@ -843,14 +1296,15 @@ function getPieceImg(piece){
 function renderBoard(viewIdx){
   const cb=document.getElementById('chessboard');
   const sz=window._boardSize||512;
-  const sqSz=sz/8;
+  const n=window._boardN||8;
+  const sqSz=sz/n;
   cb.innerHTML='';
   const displayBoard=viewIdx!==undefined&&viewIdx>=0?moveHistory[viewIdx]?.board:board;
   if(!displayBoard)return;
 
-  for(let vr=0;vr<8;vr++){
-    for(let vc=0;vc<8;vc++){
-      const [r,c]=boardFlipped?[7-vr,7-vc]:[vr,vc];
+  for(let vr=0;vr<n;vr++){
+    for(let vc=0;vc<n;vc++){
+      const [r,c]=boardFlipped?[n-1-vr,n-1-vc]:[vr,vc];
       const sq=document.createElement('div');
       sq.className='square '+((r+c)%2===0?'light':'dark');
       sq.dataset.r=r; sq.dataset.c=c;
@@ -903,9 +1357,11 @@ function renderCoords(){
   const rankEl=document.getElementById('coords-rank');
   const fileEl=document.getElementById('coords-file');
   rankEl.innerHTML=''; fileEl.innerHTML='';
-  for(let i=0;i<8;i++){
-    const r=document.createElement('div'); r.textContent=boardFlipped?(i+1):(8-i); rankEl.appendChild(r);
-    const f=document.createElement('div'); f.textContent=boardFlipped?FILES[7-i]:FILES[i]; fileEl.appendChild(f);
+  const n=window._boardN||8;
+  const FILES10='abcdefghij';
+  for(let i=0;i<n;i++){
+    const r=document.createElement('div'); r.textContent=boardFlipped?(i+1):(n-i); rankEl.appendChild(r);
+    const f=document.createElement('div'); f.textContent=boardFlipped?FILES10[n-1-i]:FILES10[i]; fileEl.appendChild(f);
   }
 }
 
@@ -939,7 +1395,7 @@ function startDrag(piece,r,c,x,y){
   selectedSq=[r,c]; validMoves=getLegalMoves(r,c,board);
   renderBoard();
   const imgSrc=getPieceImg(piece);
-  const sz=(window._boardSize||512)/8;
+  const sz=window._sqSize||(window._boardSize||512)/8;
   dragGhost=document.createElement('img');
   dragGhost.src=imgSrc; dragGhost.className='piece-drag-ghost';
   dragGhost.style.width=sz+'px'; dragGhost.style.height=sz+'px';
@@ -955,11 +1411,12 @@ function getSquareFromPoint(x,y){
   const cb=document.getElementById('chessboard');
   const rect=cb.getBoundingClientRect();
   if(x<rect.left||x>rect.right||y<rect.top||y>rect.bottom)return null;
-  const sz=rect.width/8;
+  const n=window._boardN||boardSize||8;
+  const sz=rect.width/n;
   const vc=Math.floor((x-rect.left)/sz);
   const vr=Math.floor((y-rect.top)/sz);
-  const r=boardFlipped?7-vr:vr;
-  const c=boardFlipped?7-vc:vc;
+  const r=boardFlipped?(n-1-vr):vr;
+  const c=boardFlipped?(n-1-vc):vc;
   return [r,c];
 }
 
@@ -1047,7 +1504,8 @@ function executeMove(fr,fc,tr,tc,special,fromOnline,promoTypeOverride){
   if(fr===0&&fc===0)castlingRights.bQ=false;
 
   // Promotion
-  if((piece==='wP'&&tr===0)||(piece==='bP'&&tr===7)){
+  const n=board.length;
+  if((piece==='wP'&&tr===0)||(piece==='bP'&&tr===n-1)){
     if(promoTypeOverride){
       board[tr][tc]=piece[0]+promoTypeOverride;
       finishMove(fr,fc,tr,tc,piece,captured,special,promoTypeOverride,fromOnline);
@@ -1094,6 +1552,7 @@ function isThreefoldRepetition(){
 function getLegalMoves(r,c,b){
   const piece=b[r][c]; if(!piece)return [];
   const color=piece[0];
+  const n=b.length;
   return getRawMoves(r,c,b).filter(([tr,tc,sp])=>{
     const test=JSON.parse(JSON.stringify(b));
     applyMoveToBoard(test,r,c,tr,tc,piece,sp);
@@ -1102,7 +1561,8 @@ function getLegalMoves(r,c,b){
 }
 function getAllLegalMoves(color,b){
   const moves=[];
-  for(let r=0;r<8;r++)for(let c=0;c<8;c++)
+  const n=b.length;
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)
     if(b[r][c]&&b[r][c][0]===color)getLegalMoves(r,c,b).forEach(m=>moves.push({from:[r,c],move:m}));
   return moves;
 }
@@ -1114,33 +1574,37 @@ function applyMoveToBoard(b,fr,fc,tr,tc,piece,special){
 }
 function getRawMoves(r,c,b){
   const piece=b[r][c]; if(!piece)return [];
+  const n=b.length;
   const color=piece[0],type=piece.slice(1),opp=color==='w'?'b':'w';
   const moves=[];
-  const add=(tr,tc,sp)=>{if(tr>=0&&tr<8&&tc>=0&&tc<8)moves.push([tr,tc,sp||null]);};
-  const canOcc=(tr,tc,capOnly)=>{if(tr<0||tr>=8||tc<0||tc>=8)return false;const t=b[tr][tc];if(capOnly)return t&&t[0]===opp;return !t||t[0]===opp;};
-  const slide=(dr,dc)=>{let nr=r+dr,nc=c+dc;while(nr>=0&&nr<8&&nc>=0&&nc<8){if(b[nr][nc]){if(b[nr][nc][0]===opp)add(nr,nc);break;}add(nr,nc);nr+=dr;nc+=dc;}};
+  const add=(tr,tc,sp)=>{if(tr>=0&&tr<n&&tc>=0&&tc<n)moves.push([tr,tc,sp||null]);};
+  const canOcc=(tr,tc,capOnly)=>{if(tr<0||tr>=n||tc<0||tc>=n)return false;const t=b[tr][tc];if(capOnly)return t&&t[0]===opp;return !t||t[0]===opp;};
+  const slide=(dr,dc)=>{let nr=r+dr,nc=c+dc;while(nr>=0&&nr<n&&nc>=0&&nc<n){if(b[nr][nc]){if(b[nr][nc][0]===opp)add(nr,nc);break;}add(nr,nc);nr+=dr;nc+=dc;}};
   const cp=customPieces.find(p=>p.notation===type);
   if(cp){
     const cx=3,cy=3;
-    cp.moveCells.forEach(([gr,gc])=>{const dr=gr-cy,dc=gc-cx,tr2=r+dr,tc2=c+dc;if(tr2>=0&&tr2<8&&tc2>=0&&tc2<8&&!b[tr2][tc2])add(tr2,tc2);});
+    cp.moveCells.forEach(([gr,gc])=>{const dr=gr-cy,dc=gc-cx,tr2=r+dr,tc2=c+dc;if(tr2>=0&&tr2<n&&tc2>=0&&tc2<n&&!b[tr2][tc2])add(tr2,tc2);});
     const capSet=cp.captureCells.length>0?cp.captureCells:cp.moveCells;
-    capSet.forEach(([gr,gc])=>{const dr=gr-cy,dc=gc-cx,tr2=r+dr,tc2=c+dc;if(tr2>=0&&tr2<8&&tc2>=0&&tc2<8&&b[tr2][tc2]&&b[tr2][tc2][0]===opp)add(tr2,tc2);});
+    capSet.forEach(([gr,gc])=>{const dr=gr-cy,dc=gc-cx,tr2=r+dr,tc2=c+dc;if(tr2>=0&&tr2<n&&tc2>=0&&tc2<n&&b[tr2][tc2]&&b[tr2][tc2][0]===opp)add(tr2,tc2);});
     cp.slideCells.forEach(([gr,gc])=>{const dr=gr-cy,dc=gc-cx;if(dr||dc)slide(dr>0?1:dr<0?-1:0,dc>0?1:dc<0?-1:0);});
     return moves;
   }
-  if(type==='P'){const dir=color==='w'?-1:1,sr=color==='w'?6:1;if(r+dir>=0&&r+dir<8&&!b[r+dir][c]){add(r+dir,c);if(r===sr&&!b[r+2*dir][c])add(r+2*dir,c);}[-1,1].forEach(dc=>{if(canOcc(r+dir,c+dc,true))add(r+dir,c+dc);});if(enPassantSq){const[er,ec]=enPassantSq;if(r+dir===er&&Math.abs(c-ec)===1)add(er,ec,'ep');}}
+  const promRow=color==='w'?0:n-1;
+  const startRow=color==='w'?n-2:1;
+  if(type==='P'){const dir=color==='w'?-1:1,sr=color==='w'?n-2:1;if(r+dir>=0&&r+dir<n&&!b[r+dir][c]){add(r+dir,c);if(r===sr&&!b[r+2*dir][c])add(r+2*dir,c);}[-1,1].forEach(dc=>{if(canOcc(r+dir,c+dc,true))add(r+dir,c+dc);});if(enPassantSq){const[er,ec]=enPassantSq;if(r+dir===er&&Math.abs(c-ec)===1)add(er,ec,'ep');}}
   if(type==='N'){[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>{if(canOcc(r+dr,c+dc))add(r+dr,c+dc);});}
   if(type==='B'||type==='Q'){[[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>slide(dr,dc));}
   if(type==='R'||type==='Q'){[[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>slide(dr,dc));}
-  if(type==='K'){[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dc])=>{if(canOcc(r+dr,c+dc))add(r+dr,c+dc);});const row=color==='w'?7:0,ck=color+'K',cq=color+'Q';if(r===row&&c===4){if(castlingRights[ck]&&!b[row][5]&&!b[row][6]&&!isAttacked(row,4,opp,b)&&!isAttacked(row,5,opp,b)&&!isAttacked(row,6,opp,b))add(row,6,'castle-k');if(castlingRights[cq]&&!b[row][3]&&!b[row][2]&&!b[row][1]&&!isAttacked(row,4,opp,b)&&!isAttacked(row,3,opp,b)&&!isAttacked(row,2,opp,b))add(row,2,'castle-q');}}
+  if(type==='K'){[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dc])=>{if(canOcc(r+dr,c+dc))add(r+dr,c+dc);});const row=color==='w'?n-1:0,ck=color+'K',cq=color+'Q',kCol=n-1,qCol=0;const kingCol=n===8?4:Math.floor(n/2);if(r===row&&c===kingCol){if(castlingRights[ck]&&!b[row][kingCol+1]&&!b[row][kingCol+2]&&!isAttacked(row,kingCol,opp,b)&&!isAttacked(row,kingCol+1,opp,b)&&!isAttacked(row,kingCol+2,opp,b))add(row,kingCol+2,'castle-k');if(castlingRights[cq]&&!b[row][kingCol-1]&&!b[row][kingCol-2]&&!b[row][kingCol-3]&&!isAttacked(row,kingCol,opp,b)&&!isAttacked(row,kingCol-1,opp,b)&&!isAttacked(row,kingCol-2,opp,b))add(row,kingCol-2,'castle-q');}}
   return moves;
 }
 function getRawMovesBasic(r,c,b){
   const piece=b[r][c];if(!piece)return[];
+  const n=b.length;
   const color=piece[0],type=piece.slice(1),opp=color==='w'?'b':'w';
   const moves=[];
-  const add=(tr,tc)=>{if(tr>=0&&tr<8&&tc>=0&&tc<8)moves.push([tr,tc]);};
-  const slide=(dr,dc)=>{let nr=r+dr,nc=c+dc;while(nr>=0&&nr<8&&nc>=0&&nc<8){if(b[nr][nc]){if(b[nr][nc][0]===opp)add(nr,nc);break;}add(nr,nc);nr+=dr;nc+=dc;}};
+  const add=(tr,tc)=>{if(tr>=0&&tr<n&&tc>=0&&tc<n)moves.push([tr,tc]);};
+  const slide=(dr,dc)=>{let nr=r+dr,nc=c+dc;while(nr>=0&&nr<n&&nc>=0&&nc<n){if(b[nr][nc]){if(b[nr][nc][0]===opp)add(nr,nc);break;}add(nr,nc);nr+=dr;nc+=dc;}};
   const cp=customPieces.find(p=>p.notation===type);
   if(cp){const cx=3,cy=3;const capSet=cp.captureCells.length>0?cp.captureCells:cp.moveCells;capSet.forEach(([gr,gc])=>{add(r+(gr-cy),c+(gc-cx));});cp.moveCells.forEach(([gr,gc])=>{add(r+(gr-cy),c+(gc-cx));});cp.slideCells.forEach(([gr,gc])=>{const dr=gr-cy,dc=gc-cx;if(dr||dc)slide(dr>0?1:dr<0?-1:0,dc>0?1:dc<0?-1:0);});return moves;}
   if(type==='P'){const dir=color==='w'?-1:1;[-1,1].forEach(dc=>add(r+dir,c+dc));}
@@ -1151,9 +1615,10 @@ function getRawMovesBasic(r,c,b){
   return moves;
 }
 function isInCheck(color,b){const kp=findKing(color,b);return kp?isAttacked(kp[0],kp[1],color==='w'?'b':'w',b):false;}
-function findKing(color,b){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]===color+'K')return[r,c];return null;}
+function findKing(color,b){const n=b.length;for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(b[r][c]===color+'K')return[r,c];return null;}
 function isAttacked(r,c,byColor,b){
-  for(let fr=0;fr<8;fr++)for(let fc=0;fc<8;fc++){const p=b[fr][fc];if(!p||p[0]!==byColor)continue;if(getRawMovesBasic(fr,fc,b).some(([tr,tc])=>tr===r&&tc===c))return true;}
+  const n=b.length;
+  for(let fr=0;fr<n;fr++)for(let fc=0;fc<n;fc++){const p=b[fr][fc];if(!p||p[0]!==byColor)continue;if(getRawMovesBasic(fr,fc,b).some(([tr,tc])=>tr===r&&tc===c))return true;}
   return false;
 }
 
@@ -1164,14 +1629,27 @@ function promptPromotion(tr,tc,color,fr,fc,captured,special,fromOnline){
   const modal=document.getElementById('promo-modal');
   const choices=document.getElementById('promo-choices');
   choices.innerHTML='';
+  // Standard promotion pieces (no king)
   ['Q','R','B','N'].forEach(pt=>{
     const btn=document.createElement('div'); btn.className='promo-piece';
     const imgSrc=getStdPieceImg(color,pt);
-    btn.innerHTML=`<img src="${imgSrc}" style="width:52px;height:52px;object-fit:contain">`;
+    btn.innerHTML=`<img src="${imgSrc}" style="width:52px;height:52px;object-fit:contain"><div style="font-size:0.65rem;color:var(--text3);margin-top:4px">${pt}</div>`;
     btn.onclick=()=>{
       board[tr][tc]=color+pt;
       modal.classList.remove('open');
       finishMove(fr,fc,tr,tc,color+'P',captured,special,pt,fromOnline);
+    };
+    choices.appendChild(btn);
+  });
+  // Custom pieces that have promotion enabled
+  customPieces.filter(cp=>cp.promoEnabled).forEach(cp=>{
+    const btn=document.createElement('div'); btn.className='promo-piece';
+    const imgSrc=color==='w'?cp.imgWhite:cp.imgBlack;
+    btn.innerHTML=imgSrc?`<img src="${imgSrc}" style="width:52px;height:52px;object-fit:contain"><div style="font-size:0.65rem;color:var(--text3);margin-top:4px">${cp.notation}</div>`:`<div style="font-size:1.5rem">${cp.notation}</div><div style="font-size:0.65rem;color:var(--text3);margin-top:4px">${cp.name}</div>`;
+    btn.onclick=()=>{
+      board[tr][tc]=color+cp.notation;
+      modal.classList.remove('open');
+      finishMove(fr,fc,tr,tc,color+'P',captured,special,cp.notation,fromOnline);
     };
     choices.appendChild(btn);
   });
@@ -1241,7 +1719,8 @@ function updateMaterialDisplay(){
   const vals={P:1,N:3,B:3,R:5,Q:9,K:0};
   const getVal=p=>{const cp=customPieces.find(c=>c.notation===p.slice(1));return cp?(cp.value||5):(vals[p.slice(1)]||0);};
   let wMat=0,bMat=0;
-  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p){if(p[0]==='w')wMat+=getVal(p);else bMat+=getVal(p);}}
+  const n=board.length;
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){const p=board[r][c];if(p){if(p[0]==='w')wMat+=getVal(p);else bMat+=getVal(p);}}
   const diff=wMat-bMat;
   const wb=document.getElementById('captured-by-white'),bb=document.getElementById('captured-by-black');
   const wm=document.getElementById('material-diff-white'),bm=document.getElementById('material-diff-black');
@@ -1267,10 +1746,29 @@ function endGame(winner,reason){
   document.getElementById('result-sub').textContent=msgs[reason]||reason;
   modal.classList.add('open');
 }
-function offerDraw(){if(confirm('Offer draw?'))endGame(null,'agreed');}
-function resignGame(){if(confirm('Resign?'))endGame(turn==='w'?'black':'white','resign');}
+function offerDraw(){
+  const modal=document.getElementById('draw-offer-modal');
+  modal.classList.add('open');
+}
+function acceptDraw(){
+  document.getElementById('draw-offer-modal').classList.remove('open');
+  endGame(null,'agreed');
+}
+function declineDraw(){
+  document.getElementById('draw-offer-modal').classList.remove('open');
+}
+function resignGame(){if(confirm('Resign?')){if(isOnlineGame&&lobbyChannel){lobbyChannel.postMessage({type:'player_exited'});}endGame(turn==='w'?'black':'white','resign');}}
 function flipBoard(){boardFlipped=!boardFlipped;renderBoard();updatePlayerLabels();}
 function rematch(){document.getElementById('result-modal').classList.remove('open');startGame();}
+function closeResultAndMenu(){document.getElementById('result-modal').classList.remove('open');showMenu();}
+
+// Arrow key navigation
+document.addEventListener('keydown',e=>{
+  const gameScreen=document.getElementById('screen-game');
+  if(!gameScreen.classList.contains('active'))return;
+  if(e.key==='ArrowLeft'){e.preventDefault();navMove(-1);}
+  else if(e.key==='ArrowRight'){e.preventDefault();navMove(1);}
+});
 
 // ============================================================
 // EDITOR
@@ -1336,7 +1834,7 @@ function loadCustomPieceForEdit(notation){
   document.getElementById('ep-notation').value=cp.notation;
   document.getElementById('ep-notation').disabled=false;
   document.getElementById('ep-value').value=cp.value||5;
-  const pw=document.getElementById('preview-white'),pb=document.getElementById('preview-black');
+  document.getElementById('ep-promo').checked=cp.promoEnabled||false;
   if(cp.imgWhite){pw.src=cp.imgWhite;pw.style.display='block';document.getElementById('upload-white-text').textContent='Current image';}
   else{pw.style.display='none';document.getElementById('upload-white-text').textContent='Click to upload';}
   if(cp.imgBlack){pb.src=cp.imgBlack;pb.style.display='block';document.getElementById('upload-black-text').textContent='Current image';}
@@ -1360,6 +1858,7 @@ function resetEditorForm(){
   document.getElementById('ep-notation').value='';
   document.getElementById('ep-notation').disabled=false;
   document.getElementById('ep-value').value='5';
+  document.getElementById('ep-promo').checked=false;
   document.getElementById('preview-white').style.display='none';
   document.getElementById('preview-black').style.display='none';
   document.getElementById('upload-white-text').textContent='Click to upload';
@@ -1387,14 +1886,19 @@ function savePiece(){
   const name=document.getElementById('ep-name').value.trim();
   const notation=document.getElementById('ep-notation').value.trim().toUpperCase();
   const value=parseInt(document.getElementById('ep-value').value)||5;
+  const promoEnabled=document.getElementById('ep-promo').checked;
   if(!name){alert('Enter a piece name.');return;}
   if(!notation||notation.length>2){alert('Enter a 1-2 char notation.');return;}
-  if('KQRBNP'.includes(notation)&&notation.length===1){alert('Cannot reuse standard notation. Use a unique letter(s).');return;}
+  // Block standard piece notations
+  if('KQRBNP'.includes(notation)&&notation.length===1){alert('Cannot reuse standard notation (K Q R B N P). Use a unique letter(s).');return;}
+  // Block duplicate custom piece notation (allow editing self)
+  const existingOther=customPieces.find(p=>p.notation===notation&&p.notation!==editingCustomNotation);
+  if(existingOther){alert(`Notation "${notation}" is already used by "${existingOther.name}". Choose a different notation.`);return;}
   const mc=[],cc=[],sc=[];
   Object.entries(moveCells).forEach(([k,t])=>{const[gr,gc]=k.split(',').map(Number);if(t==='move')mc.push([gr,gc]);else if(t==='capture')cc.push([gr,gc]);else if(t==='slide')sc.push([gr,gc]);});
   if(mc.length===0&&cc.length===0&&sc.length===0){alert('Define at least one movement square.');return;}
   customPieces=customPieces.filter(p=>p.notation!==notation);
-  customPieces.push({name,notation,value,imgWhite:epWhiteImg,imgBlack:epBlackImg,moveCells:mc,captureCells:cc,slideCells:sc});
+  customPieces.push({name,notation,value,promoEnabled,imgWhite:epWhiteImg,imgBlack:epBlackImg,moveCells:mc,captureCells:cc,slideCells:sc});
   saveStorage();
   renderPiecesLibrary();
   alert(`"${name}" saved!`);
@@ -1435,6 +1939,39 @@ function renderStdPiecesLib(){
   });
 }
 
+function showPiecePreview(notation){
+  const cp=customPieces.find(p=>p.notation===notation); if(!cp)return;
+  const modal=document.getElementById('piece-preview-modal');
+  document.getElementById('pp-title').textContent=cp.name;
+  document.getElementById('pp-notation').textContent=cp.notation;
+  document.getElementById('pp-value').textContent=cp.value+' pts';
+  document.getElementById('pp-promo').textContent=cp.promoEnabled?'✓ Yes':'✗ No';
+  const ppImg=document.getElementById('pp-img'),ppSym=document.getElementById('pp-sym');
+  if(cp.imgWhite){ppImg.src=cp.imgWhite;ppImg.style.display='block';ppSym.style.display='none';}
+  else{ppImg.style.display='none';ppSym.textContent=cp.notation;ppSym.style.display='block';}
+  // Draw move board
+  const mb=document.getElementById('pp-moveboard'); mb.innerHTML='';
+  for(let gr=0;gr<7;gr++){for(let gc=0;gc<7;gc++){
+    const sq=document.createElement('div');
+    sq.style.cssText='border-radius:3px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;';
+    const isCenter=gr===3&&gc===3;
+    if(isCenter){sq.style.background='var(--accent)';sq.textContent='✦';}
+    else{
+      const key=`${gr},${gc}`,t=null;
+      const inMove=cp.moveCells.some(([r,c])=>r===gr&&c===gc);
+      const inCap=cp.captureCells.some(([r,c])=>r===gr&&c===gc);
+      const inSlide=cp.slideCells.some(([r,c])=>r===gr&&c===gc);
+      if(inMove)sq.style.background='#27ae60';
+      else if(inCap)sq.style.background='#c0392b';
+      else if(inSlide)sq.style.background='#2980b9';
+      else sq.style.background='var(--bg4)';
+    }
+    mb.appendChild(sq);
+  }}
+  modal.classList.add('open');
+}
+function closePiecePreview(e){document.getElementById('piece-preview-modal').classList.remove('open');}
+
 function renderPiecesLibrary(){
   const grid=document.getElementById('pieces-grid');
   const count=document.getElementById('piece-count');
@@ -1445,9 +1982,10 @@ function renderPiecesLibrary(){
     const card=document.createElement('div'); card.className='piece-card'+(editingCustomNotation===cp.notation?' editing':''); card.title='Click to edit';
     const imgSrc=cp.imgWhite;
     const delBtn=document.createElement('button'); delBtn.className='pc-del'; delBtn.textContent='✕'; delBtn.title='Delete'; delBtn.onclick=ev=>{ev.stopPropagation();deletePiece(cp.notation);};
+    const infoBtn=document.createElement('button'); infoBtn.className='pc-del'; infoBtn.style.cssText='left:4px;right:auto;color:var(--accent)'; infoBtn.textContent='ℹ'; infoBtn.title='Preview movement'; infoBtn.onclick=ev=>{ev.stopPropagation();showPiecePreview(cp.notation);};
     if(imgSrc) card.innerHTML=`<img src="${imgSrc}"><div class="pc-name">${cp.name}</div><div class="pc-notation">${cp.notation} · val ${cp.value}</div>`;
     else card.innerHTML=`<div class="pc-symbol">${cp.notation}</div><div class="pc-name">${cp.name}</div><div class="pc-notation">val ${cp.value}</div>`;
-    card.appendChild(delBtn);
+    card.appendChild(delBtn); card.appendChild(infoBtn);
     card.onclick=()=>loadCustomPieceForEdit(cp.notation);
     grid.appendChild(card);
   });
