@@ -962,30 +962,27 @@
              setHostStatus('err', 'Relay error: ' + err.type + '. Try a new code.');
            });
 
-           peer.on('connection', (c)=>{
-             // Only allow one connection
-             if(conn){ c.close(); return; }
-             conn = c;
-             setHostStatus('ok','Opponent connecting…');
+         peer.on('connection', (c) => {
+           if (conn) { c.close(); return; }
+           conn = c;
+           setHostStatus('ok', 'Opponent connecting…');
 
-             // Set up handlers immediately — before 'open' fires
-             conn.on('open', ()=>{
-               setHostStatus('ok','Opponent connected! Sending config…');
-               _hostSendConfig();
-             });
+           const startHandshake = () => {
+             setHostStatus('ok', 'Opponent connected! Sending config…');
+             _hostSendConfig();
+           };
 
-             conn.on('data', (msg)=>{
-               console.log('[host] rx:', msg.type);
-               // Guest may send 'request_config' if they missed the first send
-               if(msg.type === 'request_config'){ _hostSendConfig(); return; }
-               handlePeerMessage(msg);
-             });
+           if (conn.open) {
+             startHandshake();
+           } else {
+             conn.on('open', startHandshake);
+           }
 
-             conn.on('close', ()=>{
-               conn = null;
-               if(gameActive) endGame(onlinePlayerColor,'resign');
-               else { alert('Opponent disconnected.'); showMenu(); }
-             });
+           conn.on('data', (msg) => {
+             console.log('[host] rx:', msg.type);
+             if (msg.type === 'request_config') { _hostSendConfig(); return; }
+             handlePeerMessage(msg);
+           });
 
              conn.on('error', (e)=>console.warn('[host] conn err', e));
            });
